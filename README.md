@@ -108,14 +108,64 @@ Step 7 (Confirm the project is Running):
   If so, everything should be working. 
 
 
+Sample cURL commands
 
+1 Get API Discovery Info:
 
+Should call the root endpoint, this being "DiscoveryResource" to retreive API metadata and available resource links
+
+curl -X GET http://localhost:8080/SmartCampusAPI/api/v1/
+
+Expected response is "200 OK" with API metadata including the name, version, contact details and resource links. 
+
+2 Get All of the Rooms:
+
+Calls "RoomResource" to return all the stored rooms in "DataStore".
+
+curl -X GET http://localhost:8080/SmartCampusAPI/api/v1/rooms
+
+Expected response is "200 OK" with a JSON array of the sample rooms made.
+
+3 Create a New Room:
+
+Calls POST in "RoomResource" to create a new room in the rooms map which is stored in "DataStore"
+
+curl -X POST http://localhost:8080/SmartCampusAPI/api/v1/rooms -H "Content-Type: application/json" -d "{\"id\": \"HALL-201\", \"name\": 
+\"Main Hall\", \"capacity\": 100}"
+
+Expected response is "201 Created" with the new room.
+
+4 Get All the CO2 Sensors:
+
+Calls "SensorResource" with an optional filter to return only CO2 type sensors
+
+curl -X GET "http://localhost:8080/SmartCampusAPI/api/v1/sensors?type=CO2"
+
+Expected response is "200 OK" with a JSON array containing 
+only the CO2-001 sensor.
+
+5 Deleting a Room which has no Sensors:
+
+Calls DELETE in "RoomResource" to delete sample which has no sensors assigned in DataStore. 
+
+curl -X DELETE http://localhost:8080/SmartCampusAPI/api/v1/rooms/LAB-101
+
+Expected response is "200 OK" with a confirmation message saying the room was deleted successfully.
+
+6 Try to Delete a Room with Sensors:
+
+Calls DELETE in "RoomResource" for LIB-301 which still has sensors assigned. 
+
+curl -X DELETE http://localhost:8080/SmartCampusAPI/api/v1/rooms/LIB-301
+
+Expected response is "409 Conflict" with a JSON error message 
+explaining the room still has sensors assigned to it.
 
 Part 1: Service Architecture & Setup
 
 Question 1 (Project & Application Configuration):
 
-Jax-Rs uses a per-request lifestyle naturally, meaning that a new instance of the resource class would be made for each HTTP request. This can be considered thread safe as each request would consequently have its own object, but it does mean that for the instance variables, shared data cannot be stored, as once the request finishes, the data would subsequently be lost. To combat this, all the shared data is stored in a separate class called "DataStore" rather than using static fields. Since static fields belong to the class rather than to an instance, they can remain indefinitely and be shared across all requests. "ConcurrentHashMap" was used rather than a normal "HashMap" as it allows for multiple requests to arrive at once. Also, a normal "HashMap" is not thread-safe and therefore prone to corruption with multiple requests, which "ConcurrentHashMap" would not suffer from.
+Jax-Rs uses a per-request lifestyle naturally, meaning that a new instance of the resource class would be made for each HTTP request. This can be considered thread safe as each request would consequently have its own object, but it does mean that for the instance variables, shared data cannot be stored, as once the request finishes, the data would subsequently be lost. To combat this, all the shared data is stored in a separate class called "DataStore" using static fields. Since static fields belong to the class rather than to an instance, they can remain indefinitely and be shared across all requests. "ConcurrentHashMap" was used rather than a normal "HashMap" as it allows for multiple requests to arrive at once. Also, a normal "HashMap" is not thread-safe and therefore prone to corruption with multiple requests, which "ConcurrentHashMap" would not suffer from.
 
 Question 2 (The "Discovery" Endpoint):
 
@@ -151,7 +201,7 @@ Part 5: Advanced Error Handling, Exception Mapping & Logging
 
 Question 1 (Dependency Validation):
 
-HTTP 404 means that a requested URL was not found, meaning that if a client gives a sensor with an invalid roomId, the URL would still be fine, since the problem is not the URL itself, but the data. Therefore, HTTP 442, which is an Unprocessable Entity, is more accurate since it tells the client that the request had a valid JSON and URL, but the content itself could not be processed, potentially due to an invalid reference. This, therefore, gives the client a clearer idea of the potential error.
+HTTP 404 means that a requested URL was not found, meaning that if a client gives a sensor with an invalid roomId, the URL would still be fine, since the problem is not the URL itself, but the data. Therefore, HTTP 422, which is an Unprocessable Entity, is more accurate since it tells the client that the request had a valid JSON and URL, but the content itself could not be processed, potentially due to an invalid reference. This, therefore, gives the client a clearer idea of the potential error.
 
 Question 2 (The Global Safety Net):
 
